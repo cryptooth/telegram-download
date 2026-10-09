@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TG Album DL</title>
+<style>
+:root{
+  --bg:#17212b;--panel:#1e2c3a;--panel2:#242f3d;--line:#2b3a4a;--text:#e8edf2;--muted:#8a9bab;
+  --accent:#5eb5f7;--accent2:#3a8fd8;--ok:#4fbf7a;--err:#e5646a;--warn:#e7b84f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;height:100vh;overflow:hidden}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:8px 14px;background:var(--accent2);color:#fff}
+button:hover{background:var(--accent)}
+button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+button.ghost:hover{color:var(--text);border-color:var(--muted)}
+button:disabled{opacity:.5;cursor:default}
+input{font:inherit;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;outline:none;width:100%}
+input:focus{border-color:var(--accent)}
+.hidden{display:none!important}
+
+/* login */
+#login{display:flex;align-items:center;justify-content:center;height:100vh}
+#login .card{background:var(--panel);padding:28px;border-radius:14px;width:340px;display:flex;flex-direction:column;gap:12px}
+#login h1{margin:0 0 4px;font-size:20px}
+#login p{margin:0;color:var(--muted);font-size:13px}
+.err{color:var(--err);font-size:13px;min-height:1em}
+
+/* layout */
+#app{display:grid;grid-template-columns:260px 1fr 320px;grid-template-rows:56px 1fr;height:100vh}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+header .logo{font-weight:700;white-space:nowrap}
+header .logo span{color:var(--accent)}
+header form{flex:1;display:flex;gap:8px;max-width:640px}
+header .me{color:var(--muted);font-size:13px;white-space:nowrap}
+aside{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+aside .search{padding:10px}
+#dialogs{overflow:auto;flex:1}
+.dlg{padding:9px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;border-left:3px solid transparent}
+.dlg:hover{background:var(--panel2)}
+.dlg.active{background:var(--panel2);border-left-color:var(--accent)}
+.dlg .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlg .u{color:var(--muted);font-size:12px}
+main{overflow:auto;padding:16px 20px;min-height:0}
+main h2{margin:0 0 4px;font-size:18px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+.empty{color:var(--muted);text-align:center;margin-top:80px}
+
+/* album cards */
+.album{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;display:grid;grid-template-columns:96px 1fr;gap:14px;padding:12px;transition:border-color .3s}
+.album.hl{border-color:var(--accent);box-shadow:0 0 0 2px #5eb5f733}
+.cover{width:96px;height:96px;border-radius:8px;background:linear-gradient(135deg,#2e4a66,#1d2a38);display:flex;align-items:center;justify-content:center;font-size:36px;color:#5eb5f7aa;overflow:hidden}
+.cover img{width:100%;height:100%;object-fit:cover}
+.album .top{display:flex;gap:8px;align-items:center}
+.album .top input{font-weight:600}
+.meta{color:var(--muted);font-size:12px;margin:6px 0}
+.desc{color:var(--muted);font-size:12px;white-space:pre-wrap;max-height:3.2em;overflow:hidden;margin-bottom:6px}
+details summary{cursor:pointer;color:var(--accent);font-size:13px;user-select:none}
+.tracks{margin-top:6px}
+.trk{display:grid;grid-template-columns:22px 1fr auto auto;gap:10px;align-items:center;padding:3px 0;font-size:13px;border-top:1px solid #ffffff08}
+.trk .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trk .d,.trk .s{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:5px;background:#5eb5f722;color:var(--accent);text-transform:uppercase;margin-left:4px}
+.more{display:block;margin:10px auto 30px}
+.filters{display:flex;gap:6px;margin-bottom:14px}
+.filters button{padding:4px 12px;font-size:12px;border-radius:14px}
+.filters button.on{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.cover.file{background:linear-gradient(135deg,#4a3a66,#2a2238);color:#b79cf5aa}
+.warnline{color:var(--warn);font-size:12px;margin:-2px 0 6px}
+.opt{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;margin-bottom:6px;cursor:pointer}
+.opt input{width:auto}
+
+/* queue */
+#queue{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#queue .qh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+#queue .qh b{font-size:14px}
+#queue .qh button{padding:4px 10px;font-size:12px}
+#jobs{overflow:auto;flex:1;padding:10px}
+.job{background:var(--panel);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.job .jt{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.job .jc{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:2px 0 6px}
+.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.job.done .bar i{background:var(--ok)} .job.error .bar i{background:var(--err)}
+.job .jf{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-top:5px}
+.job .jf a{color:var(--err);cursor:pointer}
+.st-done{color:var(--ok)} .st-error{color:var(--err)} .st-cancelled{color:var(--warn)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--err);color:#fff;padding:10px 16px;border-radius:8px;z-index:9}
+
+@media (max-width:1000px){
+  #app{grid-template-columns:220px 1fr;grid-template-rows:56px 1fr 220px}
+  #queue{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+
+<div id="login" class="hidden">
+  <div class="card">
+    <h1>Telegram'a bağlan</h1>
+    <p id="lp">Telefon numaranı uluslararası formatta gir. Kod Telegram uygulamana gelecek.</p>
+    <form id="lf" style="display:flex;flex-direction:column;gap:10px">
+      <input id="li" autocomplete="off" placeholder="+90 5xx xxx xx xx">
+      <button id="lb">Kod gönder</button>
+    </form>
+    <div class="err" id="le"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="logo">TG <span>Album</span> DL</div>
+    <form id="linkForm">
+      <input id="linkIn" placeholder="Mesaj linki yapıştır (https://t.me/c/…/…) — paylaşımı direkt bulur">
+      <button>Bul</button>
+    </form>
+    <div class="me" id="me"></div>
+  </header>
+  <aside>
+    <div class="search"><input id="dlgSearch" placeholder="Kanal ara…"></div>
+    <div id="dialogs"></div>
+  </aside>
+  <main id="main"><div class="empty">Soldan bir kanal seç ya da yukarıya mesaj linki yapıştır.</div></main>
+  <section id="queue">
+    <div class="qh"><b>İndirmeler</b><button class="ghost" id="clearBtn">Temizle</button></div>
+    <div id="jobs"></div>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtSize = b => b >= 1e9 ? (b/1e9).toFixed(2)+" GB" : b >= 1e6 ? (b/1e6).toFixed(1)+" MB" : Math.round(b/1e3)+" KB";
+const fmtDur = s => { s = Math.round(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=String(s%60).padStart(2,"0"); return h ? `${h}:${String(m).padStart(2,"0")}:${x}` : `${m}:${x}`; };
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || r.statusText);
+  return j;
+}
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),4000); }
+
+/* ---------------- login ---------------- */
+let loginStep = "phone";
+const loginText = {
+  phone:   ["Telefon numaranı uluslararası formatta gir. Kod Telegram uygulamana gelecek.", "+90 5xx xxx xx xx", "Kod gönder", "text"],
+  code:    ["Telegram'a gelen giriş kodunu yaz.", "12345", "Giriş yap", "text"],
+  password:["Hesabında iki adımlı doğrulama açık. Şifreni gir.", "Şifre", "Doğrula", "password"],
+};
+function showLogin(step){
+  loginStep = step;
+  const [p, ph, b, type] = loginText[step];
+  $("#lp").textContent = p; $("#li").placeholder = ph; $("#li").type = type; $("#lb").textContent = b;
+  $("#li").value = ""; $("#le").textContent = "";
+  $("#login").classList.remove("hidden"); $("#app").classList.add("hidden");
+  $("#li").focus();
+}
+$("#lf").onsubmit = async e => {
+  e.preventDefault();
+  const v = $("#li").value.trim(); if (!v) return;
+  $("#lb").disabled = true; $("#le").textContent = "";
+  try {
+    const key = {phone:"phone", code:"code", password:"password"}[loginStep];
+    const r = await api("/api/login/"+loginStep, {[key]: v});
+    r.step === "done" ? boot() : showLogin(r.step);
+  } catch(err){ $("#le").textContent = err.message; }
+  $("#lb").disabled = false;
+};
+
+/* ---------------- dialogs ---------------- */
+let dialogs = [], current = null, nextOffset = 0, albumsCache = [], filter = "all", extractor = null, lastRender = null;
+async function loadDialogs(){
+  $("#dialogs").innerHTML = '<div style="padding:14px;color:var(--muted)"><span class="spinner"></span>Kanallar yükleniyor…</div>';
+  dialogs = await api("/api/dialogs");
+  renderDialogs();
+}
+function renderDialogs(){
+  const q = $("#dlgSearch").value.toLocaleLowerCase("tr");
+  $("#dialogs").innerHTML = dialogs.filter(d => d.name.toLocaleLowerCase("tr").includes(q)).map(d =>
+    `<div class="dlg ${current===d.id?"active":""}" data-id="${d.id}"><span class="n">${esc(d.name)}</span>${d.unread?`<span class="u">${d.unread}</span>`:""}</div>`).join("");
+}
+$("#dlgSearch").oninput = renderDialogs;
+$("#dialogs").onclick = e => { const el = e.target.closest(".dlg"); if (el) openChat(+el.dataset.id); };
+
+/* ---------------- albums ---------------- */
+async function openChat(id, append=false){
+  if (!append){ current = id; nextOffset = 0; albumsCache = []; renderDialogs();
+    $("#main").innerHTML = '<div class="empty"><span class="spinner"></span>Mesajlar taranıyor…</div>'; }
+  try {
+    const r = await api(`/api/albums?chat=${id}&offset_id=${nextOffset}&limit=300`);
+    nextOffset = r.next_offset;
+    albumsCache = albumsCache.concat(r.albums.filter(a => !albumsCache.some(x => x.key === a.key)));
+    renderAlbums(r.chat_title, r.chat_id, r.scanned > 0 && nextOffset > 1);
+  } catch(err){ toast(err.message); }
+}
+function renderAlbums(title, chatId, hasMore, highlight){
+  lastRender = [title, chatId, hasMore, highlight];
+  current = chatId; renderDialogs();
+  const nA = albumsCache.filter(a => a.kind === "audio").length, nF = albumsCache.length - nA;
+  const list = albumsCache.filter(a => filter === "all" || a.kind === filter);
+  const fb = (k, l) => `<button class="ghost ${filter===k?"on":""}" data-f="${k}">${l}</button>`;
+  const head = `<h2>${esc(title)}</h2><div class="sub">${nA} albüm · ${nF} dosya paylaşımı</div>
+    <div class="filters">${fb("all","Hepsi")}${fb("audio","Müzik")}${fb("file","Dosyalar")}</div>`;
+  const body = list.length ? list.map(a => albumHTML(a, chatId, a.key===highlight)).join("")
+    : '<div class="empty">Bu aralıkta indirilebilir paylaşım yok.</div>';
+  $("#main").innerHTML = head + body + (hasMore ? '<button class="ghost more" id="moreBtn">Daha eski mesajları tara</button>' : "");
+  if (hasMore) $("#moreBtn").onclick = e => { e.target.disabled = true; e.target.innerHTML='<span class="spinner"></span>Taranıyor…'; openChat(chatId, true); };
+  if (highlight) document.querySelector(".album.hl")?.scrollIntoView({block:"center", behavior:"smooth"});
+}
+function albumHTML(a, chatId, hl){
+  const isFile = a.kind === "file";
+  const exts = [...new Set(a.tracks.map(t => t.ext))].filter(Boolean);
+  const cover = a.cover_id ? `<img loading="lazy" src="/api/cover?chat=${chatId}&id=${a.cover_id}" onerror="this.remove()">` : "";
+  const ar = a.archive;
+  const count = isFile ? (ar && ar.parts > 1 ? `${ar.parts} parçalı arşiv` : `${a.tracks.length} dosya`) : `${a.tracks.length} parça`;
+  const dur = !isFile && a.total_duration ? ` · ${fmtDur(a.total_duration)}` : "";
+  const warn = ar && ar.missing.length ? `<div class="warnline">⚠ Eksik parça: ${ar.missing.join(", ")} — bu aralıkta bulunamadı, daha eski mesajları tara</div>` : "";
+  const opt = isFile && ar && extractor ? `<label class="opt"><input type="checkbox" class="ex" ${ar.missing.length?"":"checked"}> İndirince aç (${esc(extractor)})</label>` : "";
+  return `<div class="album ${hl?"hl":""}" data-key="${a.key}" data-chat="${chatId}" data-cover="${a.cover_id ?? ""}">
+    <div class="cover ${isFile?"file":""}">${isFile?"⬢":"♪"}${cover}</div>
+    <div>
+      <div class="top"><input class="folder" value="${esc(a.title)}" title="İndirme klasörü adı"><button class="dl">İndir</button></div>
+      <div class="meta">${count} · ${fmtSize(a.total_size)}${dur} · ${new Date(a.date).toLocaleDateString("tr-TR")}${exts.map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div>
+      ${warn}${a.description ? `<div class="desc">${esc(a.description)}</div>` : ""}${opt}
+      <details><summary>${isFile?"Dosyalar":"Parçalar"}</summary><div class="tracks">
+        ${a.tracks.map(t => `<label class="trk"><input type="checkbox" checked value="${t.id}" style="width:auto">
+          <span class="t">${esc(isFile ? (t.name || t.title) : t.title)}${!isFile && t.performer ? ` <span style="color:var(--muted)">— ${esc(t.performer)}</span>` : ""}</span>
+          <span class="d">${!isFile && t.duration ? fmtDur(t.duration) : ""}</span><span class="s">${fmtSize(t.size)}</span></label>`).join("")}
+      </div></details>
+    </div></div>`;
+}
+$("#main").addEventListener("click", async e => {
+  if (e.target.dataset.f){ filter = e.target.dataset.f; return renderAlbums(...lastRender); }
+  if (!e.target.classList.contains("dl")) return;
+  const card = e.target.closest(".album");
+  const ids = [...card.querySelectorAll(".trk input:checked")].map(i => +i.value);
+  if (!ids.length) return toast("En az bir parça seç");
+  e.target.disabled = true; e.target.textContent = "Sırada";
+  try {
+    await api("/api/download", {chat:+card.dataset.chat, ids, folder: card.querySelector(".folder").value.trim() || "Album",
+                                cover_id: card.dataset.cover ? +card.dataset.cover : null,
+                                extract: !!card.querySelector(".ex:checked")});
+    pollJobs();
+  } catch(err){ toast(err.message); e.target.disabled = false; e.target.textContent = "İndir"; }
+});
+
+/* ---------------- link ---------------- */
+$("#linkForm").onsubmit = async e => {
+  e.preventDefault();
+  const url = $("#linkIn").value.trim(); if (!url) return;
+  $("#main").innerHTML = '<div class="empty"><span class="spinner"></span>Link çözülüyor…</div>';
+  try {
+    const r = await api("/api/link?url=" + encodeURIComponent(url));
+    albumsCache = r.albums; nextOffset = 0;
+    renderAlbums(r.chat_title, r.chat_id, false, r.highlight);
+  } catch(err){ $("#main").innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+};
+
+/* ---------------- jobs ---------------- */
+const stLabel = {queued:"Sırada", running:"İndiriliyor", extracting:"Açılıyor", done:"Tamamlandı", error:"Hata", cancelled:"İptal edildi"};
+async function pollJobs(){
+  let list = [];
+  try { list = await api("/api/jobs"); } catch { return; }
+  $("#jobs").innerHTML = list.length ? list.map(j => {
+    const pct = j.total ? Math.min(100, j.bytes / j.total * 100) : (j.status==="done"?100:0);
+    return `<div class="job ${j.status}">
+      <div class="jt" title="${esc(j.path)}">${esc(j.title)}</div>
+      <div class="jc" ${j.error?'style="color:var(--warn)"':""}>${esc(j.error || j.current || (j.status==="done" ? j.path : ""))}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="jf"><span class="st-${j.status}">${stLabel[j.status]} · ${j.done_files}/${j.files} · ${j.total?fmtSize(j.bytes)+" / "+fmtSize(j.total):""}</span>
+        ${["queued","running"].includes(j.status) ? `<a data-cancel="${j.id}">iptal</a>` : ""}</div></div>`;
+  }).join("") : '<div style="color:var(--muted);text-align:center;margin-top:30px;font-size:13px">Henüz indirme yok</div>';
+}
+$("#jobs").onclick = async e => { const id = e.target.dataset.cancel; if (id){ await api(`/api/jobs/${id}/cancel`, {}); pollJobs(); } };
+$("#clearBtn").onclick = async () => { await api("/api/jobs/clear", {}); pollJobs(); };
+setInterval(pollJobs, 1000);
+
+/* ---------------- boot ---------------- */
+async function boot(){
+  const s = await api("/api/status");
+  if (!s.authorized) return showLogin(s.step);
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
+  $("#me").textContent = s.name; $("#me").title = "İndirme klasörü: " + s.download_dir;
+  api("/api/capabilities").then(c => extractor = c.extractor).catch(()=>{});
+  loadDialogs(); pollJobs();
+}
+boot();
+</script>
+</body>
+</html>

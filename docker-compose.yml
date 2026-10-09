@@ -1,0 +1,19 @@
+services:
+  tg-album-dl:
+    build: .
+    container_name: tg-album-dl
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8765
+      - DOWNLOAD_DIR=/app/downloads
+      - SESSION_PATH=/app/data/tg
+      # İsteğe bağlı olarak config.json yerine doğrudan çevre değişkenleri de kullanılabilir:
+      # - TG_API_ID=1234567
+      # - TG_API_HASH=your_telegram_hash
+    volumes:
+      - ./data:/app/data
+      - ./downloads:/app/downloads
+      - ./config.json:/app/config.json:ro
